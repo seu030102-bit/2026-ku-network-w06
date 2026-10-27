@@ -1,0 +1,45 @@
+Measured on this PC with three FRR 10.4.5 containers.
+The course image tag frrouting/frr:v9.1.0 is not on Docker Hub.
+quay.io/frrouting/frr:10.4.5 was used instead.
+r1 interface toward r2 (2.2.2.2) was eth0. The course script names eth1; this run's live neighbor table named eth0.
+
+Hello and dead, from r1 show ip ospf interface eth0 before the cut:
+eth0 is up
+  ifindex 2, MTU 1500 bytes, BW 10000 Mbit <UP,LOWER_UP,BROADCAST,RUNNING,MULTICAST>
+  Internet Address 172.20.0.2/16, Broadcast 172.20.255.255, Area 0.0.0.0
+  MTU mismatch detection: enabled
+  Router ID 1.1.1.1, Network Type BROADCAST, Cost: 10
+  Transmit Delay is 1 sec, State Backup, Priority 1
+  Designated Router (ID) 2.2.2.2 Interface Address 172.20.0.3/16
+  Backup Designated Router (ID) 1.1.1.1, Interface Address 172.20.0.2
+  Multicast group memberships: OSPFAllRouters OSPFDesignatedRouters
+  Timer intervals configured, Hello 10s, Dead 40s, Wait 40s, Retransmit 5
+    Hello due in 0.088s
+  Neighbor Count is 1, Adjacent neighbor count is 1
+  Graceful Restart hello delay: 10s
+  LSA retransmissions: 1
+
+Link down (eth0 on r1):
+  r1 table changed after 1.85 s
+  r2 table changed after 1.85 s
+
+Link restore (neighbor 1.1.1.1 Full on r2): 1.97 s
+
+Cost change, a later recreate whose interface names match frr.conf.
+r1 eth0 is toward r3 (172.18.0.3). Neighbors stayed Full.
+Cost of that interface set from 10 to 100. Clock starts at the vtysh command.
+  r2 dropped via 172.20.0.3 for 172.18.0.0/16 after 1.64 s.
+  Before: cost 20 via 172.20.0.3 and via 172.21.0.2.
+  After: cost 20 via 172.21.0.2 only.
+  r1 also moved: 172.21.0.0/16 lost the via-r3 hop, and 172.18.0.0/16
+  left the cost-100 connected route for via r2 at cost 30.
+Full tables: out/route-cost-before.txt and out/route-cost-after.txt.
+The link stayed up. This is an LSA, not a dead-interval wait.
+
+Link down (eth0 on r1), repeated here for the summary:
+  both tables had moved by the first sample, 1.85 s.
+  In route-after.txt, r2 still showed neighbor 1.1.1.1 Full, dead time about 30 s.
+  The forwarding change arrived around r3 before that adjacency timed out.
+
+Link restore: neighbor 1.1.1.1 was Full on r2 after 1.97 s.
+
